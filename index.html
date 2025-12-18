@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>星星國的符號大挑戰</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Roboto+Mono:wght@700&display=swap');
+        
+        :root {
+            --color-primary: #1e3a8a; 
+            --color-secondary: #fcd34d; 
+            --color-timer-blue: #3b82f6; 
+            --color-background-dark: #111827; 
+            --color-display-light: #d1fae5; 
+            --color-key-light: #ffffff; 
+            --color-key-dark: #e5e7eb; 
+            --color-key-special: #94a3b8; 
+            --color-correct: #10b981; 
+            --color-error: #ef4444; 
+            --color-active-shift: #6366f1; 
+            --font-main: 'Inter', sans-serif;
+            --font-symbol: 'Roboto Mono', monospace;
+            --color-highlight-bg: #8b5cf6; 
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-background-dark);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 40px;
+            min-height: 100vh;
+            color: white;
+            overflow: hidden; 
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-between;
+            width: 450px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .timer-container, .score-container {
+            padding: 8px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+        }
+
+        .timer-value { color: var(--color-timer-blue); transition: color 0.3s; }
+        .timer-warning { color: #f87171; animation: blink 0.5s infinite; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .score-value { color: var(--color-secondary); }
+
+        .symbol-display {
+            width: 450px;
+            height: 120px;
+            background-color: var(--color-display-light);
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 5px solid #10b981; 
+            padding: 10px 0;
+            z-index: 10;
+            transition: border-color 0.1s ease;
+        }
+
+        .symbol-display.shake {
+            animation: shake 0.12s ease-in-out;
+            border-color: var(--color-error) !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .current-symbol {
+            font-family: var(--font-symbol);
+            font-size: 64px; 
+            font-weight: 900;
+            color: var(--color-primary);
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8);
+            line-height: 1;
+        }
+
+        .game-message {
+            height: 24px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #b91c1c;
+            opacity: 0;
+            margin-top: 5px;
+            transition: opacity 0.2s ease;
+        }
+
+        .game-message.show { opacity: 1; }
+
+        .keyboard-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: #1f2937;
+            padding: 25px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            transform: scale(0.65);
+            transform-origin: center top;
+            margin-top: -10px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .key {
+            width: 60px;
+            height: 60px;
+            background-color: var(--color-key-light);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; 
+            color: #111; 
+            font-weight: 900; 
+            font-size: 22px; 
+            position: relative;
+            box-shadow: 0 5px 0px #9ca3af;
+            transition: transform 0.02s, box-shadow 0.02s, background-color 0.02s;
+        }
+
+        .key.backspace { width: 130px; }
+        .key.tab { width: 95px; }
+        .key.caps { width: 110px; }
+        .key.enter { width: 115px; }
+        .key.shift { width: 155px; background-color: var(--color-key-special); }
+        .key.space { width: 400px; }
+
+        .key .top-label { font-size: 28px; font-family: var(--font-symbol); margin-bottom: 2px; }
+        .key .bottom-label { font-size: 20px; color: #4b5563; }
+
+        .highlight-key {
+            z-index: 20;
+            background: linear-gradient(145deg, var(--color-highlight-bg), #a78bfa) !important;
+            color: white !important;
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        .key.active { transform: translateY(3px); box-shadow: 0 1px 0px #9ca3af; background-color: #f3f4f6; }
+        .key.shift.active { background-color: var(--color-active-shift) !important; color: white; box-shadow: 0 1px 0px #4338ca; }
+        .correct-key { background-color: var(--color-correct) !important; color: white !important; box-shadow: 0 2px 0px #065f46 !important; }
+        .error-key { background-color: var(--color-error) !important; color: white !important; box-shadow: 0 2px 0px #991b1b !important; }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 15, 25, 0.98);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .overlay.active { opacity: 1; pointer-events: auto; }
+
+        .btn-fancy {
+            padding: 20px 60px;
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: white;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .btn-fancy:active { transform: scale(0.95); }
+
+        .game-title {
+            font-size: 60px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #ffffff, #9ca3af);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+
+        .instructions {
+            margin-bottom: 40px;
+            text-align: center;
+            color: #9ca3af;
+            line-height: 1.6;
+        }
+
+        .final-score-container {
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+        }
+        
+        .final-score-value {
+            display: block;
+            color: #ef4444; 
+            font-size: 120px; 
+            font-weight: 900;
+            margin-top: 10px;
+            text-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+            animation: scorePop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-info">
+        <div class="timer-container">
+            <i class="fas fa-clock"></i> 時間: <span id="timer" class="timer-value">180</span>s
+        </div>
+        <div class="score-container">
+            <i class="fas fa-star"></i> 得分: <span id="score" class="score-value">0</span>
+        </div>
+    </div>
+
+    <div class="symbol-display" id="display-box">
+        <div id="symbol-text" class="current-symbol">@</div>
+        <div id="warning-msg" class="game-message">⚠️ 答對囉！請放開 Shift 鍵</div>
+    </div>
+
+    <div class="keyboard-container" id="virtual-keyboard">
+        <!-- 鍵盤 Row 1 -->
+        <div class="keyboard-row">
+            <div class="key" data-key="Backquote"><span class="top-label">~</span><span class="bottom-label">`</span></div>
+            <div class="key" data-key="Digit1"><span class="top-label">!</span><span class="bottom-label">1</span></div>
+            <div class="key" data-key="Digit2"><span class="top-label">@</span><span class="bottom-label">2</span></div>
+            <div class="key" data-key="Digit3"><span class="top-label">#</span><span class="bottom-label">3</span></div>
+            <div class="key" data-key="Digit4"><span class="top-label">$</span><span class="bottom-label">4</span></div>
+            <div class="key" data-key="Digit5"><span class="top-label">%</span><span class="bottom-label">5</span></div>
+            <div class="key" data-key="Digit6"><span class="top-label">^</span><span class="bottom-label">6</span></div>
+            <div class="key" data-key="Digit7"><span class="top-label">&</span><span class="bottom-label">7</span></div>
+            <div class="key" data-key="Digit8"><span class="top-label">*</span><span class="bottom-label">8</span></div>
+            <div class="key" data-key="Digit9"><span class="top-label">(</span><span class="bottom-label">9</span></div>
+            <div class="key" data-key="Digit0"><span class="top-label">)</span><span class="bottom-label">0</span></div>
+            <div class="key" data-key="Minus"><span class="top-label">_</span><span class="bottom-label">-</span></div>
+            <div class="key" data-key="Equal"><span class="top-label">+</span><span class="bottom-label">=</span></div>
+            <div class="key backspace" data-key="Backspace"><span>Backspace</span></div>
+        </div>
+        <!-- 鍵盤 Row 2 -->
+        <div class="keyboard-row">
+            <div class="key tab" data-key="Tab"><span>Tab</span></div>
+            <div class="key" data-key="KeyQ"><span>Q</span></div>
+            <div class="key" data-key="KeyW"><span>W</span></div>
+            <div class="key" data-key="KeyE"><span>E</span></div>
+            <div class="key" data-key="KeyR"><span>R</span></div>
+            <div class="key" data-key="KeyT"><span>T</span></div>
+            <div class="key" data-key="KeyY"><span>Y</span></div>
+            <div class="key" data-key="KeyU"><span>U</span></div>
+            <div class="key" data-key="KeyI"><span>I</span></div>
+            <div class="key" data-key="KeyO"><span>O</span></div>
+            <div class="key" data-key="KeyP"><span>P</span></div>
+            <div class="key" data-key="BracketLeft"><span class="top-label">{</span><span class="bottom-label">[</span></div>
+            <div class="key" data-key="BracketRight"><span class="top-label">}</span><span class="bottom-label">]</span></div>
+            <div class="key" style="width: 75px;" data-key="Backslash"><span class="top-label">|</span><span class="bottom-label">\</span></div>
+        </div>
+        <!-- 鍵盤 Row 3 -->
+        <div class="keyboard-row">
+            <div class="key caps" data-key="CapsLock"><span>Caps</span></div>
+            <div class="key" data-key="KeyA"><span>A</span></div>
+            <div class="key" data-key="KeyS"><span>S</span></div>
+            <div class="key" data-key="KeyD"><span>D</span></div>
+            <div class="key" data-key="KeyF"><span>F</span></div>
+            <div class="key" data-key="KeyG"><span>G</span></div>
+            <div class="key" data-key="KeyH"><span>H</span></div>
+            <div class="key" data-key="KeyJ"><span>J</span></div>
+            <div class="key" data-key="KeyK"><span>K</span></div>
+            <div class="key" data-key="KeyL"><span>L</span></div>
+            <div class="key" data-key="Semicolon"><span class="top-label">:</span><span class="bottom-label">;</span></div>
+            <div class="key" data-key="Quote"><span class="top-label">"</span><span class="bottom-label">'</span></div>
+            <div class="key enter" data-key="Enter"><span>Enter</span></div>
+        </div>
+        <!-- 鍵盤 Row 4 -->
+        <div class="keyboard-row">
+            <div class="key shift" data-key="ShiftLeft"><span>Shift</span></div>
+            <div class="key" data-key="KeyZ"><span>Z</span></div>
+            <div class="key" data-key="KeyX"><span>X</span></div>
+            <div class="key" data-key="KeyC"><span>C</span></div>
+            <div class="key" data-key="KeyV"><span>V</span></div>
+            <div class="key" data-key="KeyB"><span>B</span></div>
+            <div class="key" data-key="KeyN"><span>N</span></div>
+            <div class="key" data-key="KeyM"><span>M</span></div>
+            <div class="key" data-key="Comma"><span class="top-label"><</span><span class="bottom-label">,</span></div>
+            <div class="key" data-key="Period"><span class="top-label">></span><span class="bottom-label">.</span></div>
+            <div class="key" data-key="Slash"><span class="top-label">?</span><span class="bottom-label">/</span></div>
+            <div class="key shift" data-key="ShiftRight"><span>Shift</span></div>
+        </div>
+        <!-- 鍵盤 Row 5 -->
+        <div class="keyboard-row">
+            <div class="key space" data-key="Space"><span>Space Bar</span></div>
+        </div>
+    </div>
+
+    <div class="overlay active" id="start-screen">
+        <h1 class="game-title">星星國的符號大挑戰</h1>
+        <div class="instructions">
+            快速輸入出現的<b>數字</b>或<b>符號</b><br>
+            符號需要搭配 <b>Shift</b> 鍵<br>
+            答對 +100 / 答錯 -10
+        </div>
+        <button class="btn-fancy" id="btn-start">開始挑戰</button>
+    </div>
+
+    <div class="overlay" id="end-screen">
+        <h1 class="game-title">星星國的符號大挑戰</h1>
+        <div class="final-score-container">
+            挑戰結束！總分：<span id="final-score-val" class="final-score-value">0</span>
+        </div>
+        <button class="btn-fancy" id="btn-restart">再玩一次</button>
+    </div>
+
+    <script>
+        /**
+         * 強化的音效系統
+         */
+        const SoundSystem = {
+            ctx: null,
+            init() {
+                try {
+                    if (!this.ctx) {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {
+                    console.error("音訊初始化失敗", e);
+                }
+            },
+            playTone(freq, type, duration, vol) {
+                this.init();
+                if (!this.ctx) return;
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playCorrect() {
+                this.playTone(880, 'sine', 0.1, 0.1); 
+                setTimeout(() => this.playTone(1320, 'sine', 0.15, 0.08), 50);
+            },
+            playError() {
+                this.playTone(330, 'square', 0.1, 0.05);
+                setTimeout(() => this.playTone(261, 'square', 0.15, 0.05), 80);
+            },
+            playTick() {
+                this.playTone(1000, 'square', 0.03, 0.02);
+            },
+            playGameOver() {
+                [523, 659, 783, 1046].forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sine', 0.4, 0.1), i * 150);
+                });
+            }
+        };
+
+        const symbols = [
+            { char: '!', code: 'Digit1', shift: true }, { char: '@', code: 'Digit2', shift: true },
+            { char: '#', code: 'Digit3', shift: true }, { char: '$', code: 'Digit4', shift: true },
+            { char: '%', code: 'Digit5', shift: true }, { char: '^', code: 'Digit6', shift: true },
+            { char: '&', code: 'Digit7', shift: true }, { char: '*', code: 'Digit8', shift: true },
+            { char: '(', code: 'Digit9', shift: true }, { char: ')', code: 'Digit0', shift: true },
+            { char: '_', code: 'Minus', shift: true }, { char: '+', code: 'Equal', shift: true },
+            { char: '{', code: 'BracketLeft', shift: true }, { char: '}', code: 'BracketRight', shift: true },
+            { char: '|', code: 'Backslash', shift: true }, { char: ':', code: 'Semicolon', shift: true },
+            { char: '"', code: 'Quote', shift: true }, { char: '<', code: 'Comma', shift: true },
+            { char: '>', code: 'Period', shift: true }, { char: '?', code: 'Slash', shift: true },
+            { char: '~', code: 'Backquote', shift: true }, 
+            { char: '[', code: 'BracketLeft', shift: false }, { char: ']', code: 'BracketRight', shift: false },
+            { char: ';', code: 'Semicolon', shift: false }, { char: "'", code: 'Quote', shift: false }, 
+            { char: ',', code: 'Comma', shift: false }, { char: '.', code: 'Period', shift: false }, 
+            { char: '/', code: 'Slash', shift: false }, { char: '-', code: 'Minus', shift: false }, 
+            { char: '=', code: 'Equal', shift: false }, { char: '\\', code: 'Backslash', shift: false }, 
+            { char: '`', code: 'Backquote', shift: false },
+            { char: '1', code: 'Digit1', shift: false }, { char: '2', code: 'Digit2', shift: false },
+            { char: '3', code: 'Digit3', shift: false }, { char: '4', code: 'Digit4', shift: false },
+            { char: '5', code: 'Digit5', shift: false }, { char: '6', code: 'Digit6', shift: false },
+            { char: '7', code: 'Digit7', shift: false }, { char: '8', code: 'Digit8', shift: false },
+            { char: '9', code: 'Digit9', shift: false }, { char: '0', code: 'Digit0', shift: false }
+        ];
+
+        let score = 0;
+        let timeLeft = 180; 
+        let gameActive = false;
+        let timerId = null;
+        let currentSymbolObj = null;
+        let awaitingShiftRelease = false; 
+        let warningTimeout = null; 
+        let activeKeys = new Set(); // 追蹤目前按下的按鍵
+        let holdTimeout = null; // 追蹤長按
+
+        const displayBox = document.getElementById('display-box');
+        const symbolText = document.getElementById('symbol-text');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const finalScoreVal = document.getElementById('final-score-val');
+        const warningMsg = document.getElementById('warning-msg');
+
+        document.getElementById('btn-start').onclick = startGame;
+        document.getElementById('btn-restart').onclick = startGame;
+
+        function startGame() {
+            SoundSystem.init(); 
+            score = 0;
+            timeLeft = 180; 
+            gameActive = true;
+            awaitingShiftRelease = false;
+            activeKeys.clear();
+            if (warningTimeout) clearTimeout(warningTimeout);
+            if (holdTimeout) clearTimeout(holdTimeout);
+            
+            scoreDisplay.textContent = score;
+            timerDisplay.textContent = timeLeft;
+            timerDisplay.classList.remove('timer-warning');
+            startScreen.classList.remove('active');
+            endScreen.classList.remove('active');
+            hideWarning();
+            
+            if (timerId) clearInterval(timerId);
+            timerId = setInterval(updateTimer, 1000);
+            nextSymbol();
+        }
+
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+            if (timeLeft <= 10 && timeLeft > 0) {
+                timerDisplay.classList.add('timer-warning');
+                SoundSystem.playTick();
+            }
+            if (timeLeft <= 0) endGame();
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerId);
+            finalScoreVal.textContent = score;
+            SoundSystem.playGameOver();
+            endScreen.classList.add('active');
+        }
+
+        function nextSymbol() {
+            if (!gameActive) return;
+            currentSymbolObj = symbols[Math.floor(Math.random() * symbols.length)];
+            symbolText.textContent = currentSymbolObj.char;
+            symbolText.style.color = 'var(--color-primary)';
+            
+            resetKeyStyles();
+            const targetKey = document.querySelector(`.key[data-key="${currentSymbolObj.code}"]`);
+            if (targetKey) targetKey.classList.add('highlight-key');
+        }
+
+        function showWarningDelayed(msg = "⚠️ 答對囉！請放開 Shift 鍵") {
+            warningMsg.textContent = msg;
+            warningTimeout = setTimeout(() => {
+                if (awaitingShiftRelease || holdTimeout) {
+                    warningMsg.classList.add('show');
+                    displayBox.style.borderColor = "#f59e0b";
+                }
+            }, 1200); 
+        }
+
+        function hideWarning() {
+            if (warningTimeout) clearTimeout(warningTimeout);
+            warningMsg.classList.remove('show');
+            displayBox.style.borderColor = "#10b981";
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            // 防止重複觸發長按扣分
+            if (activeKeys.has(e.code)) return; 
+            activeKeys.add(e.code);
+
+            if (["Space", "Tab", "Slash", "Quote", "Semicolon"].includes(e.code)) {
+                e.preventDefault();
+            }
+
+            const keyEl = document.querySelector(`.key[data-key="${e.code}"]`);
+            if (keyEl) keyEl.classList.add('active');
+            
+            // 長按防護：如果按住超過1.5秒沒放開，顯示提示
+            if (e.key !== 'Shift') {
+                holdTimeout = setTimeout(() => {
+                    if (activeKeys.has(e.code)) {
+                        showWarningDelayed("⚠️ 請放開按鍵，再試一次！");
+                    }
+                }, 1500);
+            }
+
+            if (awaitingShiftRelease) {
+                if (e.key !== 'Shift') handleError(keyEl);
+                return;
+            }
+            
+            if (e.key === 'Shift') return;
+            
+            const isCorrectKey = (e.code === currentSymbolObj.code);
+            const isCorrectShift = (e.shiftKey === currentSymbolObj.shift);
+            
+            if (isCorrectKey && isCorrectShift) {
+                handleCorrect(keyEl, e.shiftKey);
+            } else {
+                handleError(keyEl);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            activeKeys.delete(e.code);
+            if (holdTimeout) {
+                clearTimeout(holdTimeout);
+                holdTimeout = null;
+            }
+
+            const keyEl = document.querySelector(`.key[data-key="${e.code}"]`);
+            if (keyEl && e.key !== 'Shift') keyEl.classList.remove('active');
+            
+            if (e.key === 'Shift') {
+                if (!e.shiftKey) { 
+                    document.querySelectorAll('.key.shift').forEach(sk => sk.classList.remove('active'));
+                    if (awaitingShiftRelease) {
+                        awaitingShiftRelease = false;
+                        hideWarning();
+                        resetKeyStyles(); 
+                        nextSymbol();
+                    }
+                }
+            } else {
+                // 如果是普通按鍵放開，且正在提示「請放開按鍵」，則隱藏
+                if (warningMsg.textContent.includes("請放開按鍵")) {
+                    hideWarning();
+                }
+            }
+        });
+
+        function handleCorrect(keyEl, wasShiftPressed) {
+            score += 100;
+            scoreDisplay.textContent = score;
+            SoundSystem.playCorrect();
+            
+            if (keyEl) {
+                keyEl.classList.add('correct-key');
+                setTimeout(() => keyEl.classList.remove('correct-key'), 300);
+            }
+            
+            if (wasShiftPressed) {
+                awaitingShiftRelease = true;
+                showWarningDelayed("⚠️ 答對囉！請放開 Shift 鍵");
+            } else {
+                nextSymbol(); 
+            }
+        }
+
+        function handleError(keyEl) {
+            score = Math.max(0, score - 10);
+            scoreDisplay.textContent = score;
+            SoundSystem.playError();
+            
+            if (keyEl) {
+                keyEl.classList.add('error-key');
+                setTimeout(() => keyEl.classList.remove('error-key'), 300);
+            }
+            
+            symbolText.style.color = 'var(--color-error)';
+            displayBox.classList.add('shake');
+            setTimeout(() => {
+                displayBox.classList.remove('shake');
+                symbolText.style.color = 'var(--color-primary)';
+            }, 300);
+        }
+
+        function resetKeyStyles() {
+             document.querySelectorAll('.key').forEach(key => {
+                key.classList.remove('correct-key', 'error-key', 'highlight-key'); 
+                if (key.dataset.key !== 'ShiftLeft' && key.dataset.key !== 'ShiftRight') {
+                     key.classList.remove('active');
+                }
+             });
+        }
+    </script>
+</body>
+</html>
